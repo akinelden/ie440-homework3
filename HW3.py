@@ -55,7 +55,7 @@ def SimplexSearch():
     x=np.zeros(shape=(3,2))
     x_1=np.array([-2,15])#initial
     x_2=np.array([-8,10])#initial
-    x_3=np.array([30,22])#initial
+    x_3=np.array([0,0])#initial
     x[0]=x_1
     x[1]=x_2
     x[2]=x_3 
@@ -64,15 +64,13 @@ def SimplexSearch():
         for i in range(a.shape[0]):
             f_values[i]=f(a[i])
         return f_values    
-    
-    sum_value=0
     epsilon=1
     alpha=1
     beta=0.5
-    gama=2
+    gamma=2
     
     while(True):    
-        
+        sum_value=0
         f_values=compute_f_values(x)#function values of x_matrix
         x_h=x[np.argmax(f_values)] #the worst point
         x_l=x[np.argmin(f_values)] #the best point
@@ -86,13 +84,13 @@ def SimplexSearch():
         if f(x_l)>f(x_r): #the reflected point x_r happens to be better than the current best  
             x_e=x_mean+gamma*(x_r-x_mean) #Expansion
             if f(x_r)>f(x_e): #the expanded point x_e happens to be better than the current best x_r
-                x_h=x_e
+                x[np.argmax(f_values)]=x_e
             else:             #the expanded point is not better than x_r so we replace x_h with x_r
-                x_h=x_r
+                x[np.argmax(f_values)]=x_r
         
         else:
             if (np.max(f_values_mean_x))>=f(x_r):
-                x_h=x_r
+                x[np.argmax(f_values)]=x_r
             else:
                 if f(x_h)>f(x_r):
                     x_h_prime=x_r
@@ -101,13 +99,14 @@ def SimplexSearch():
                 
                 x_c=x_mean+beta*(x_h_prime-x_mean) #contraction
                 if f(x_c) <= f(x_h):
-                    x_h=x_c
+                    x[np.argmax(f_values)]=x_c
                 else:
                     for i in range(3):
                         x[i]=x[i]+0.5*(x_l-x[i]) #shrink operation
-       
+        
         for i in range(3):
             sum_value+=(f(x[i])-f(x_mean))**2
+        print(sum_value)
         if np.sqrt(sum_value)<epsilon:
             break
                 
