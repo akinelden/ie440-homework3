@@ -10,17 +10,23 @@ from sympy import Symbol, cos, sin, lambdify
 import matplotlib.pyplot as plt
 import pdb
 from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
-#
+
+
+# %%
 x1  = sym.Symbol('x1')
 x2 = sym.Symbol('x2')
 function = (5*x1-x2)**4+((x1-2)**2)+(x1-2*x2)+12
 f = lambdify([[x1,x2]], function, 'numpy')
 # plot the function
 f_2 = lambdify([x1,x2], function, 'numpy')
+
+
+# %%
 x = np.arange(6.0,7.0,0.1)
 y = np.arange(32.0,33.0,0.1)
 X,Y = meshgrid(x, y) # grid of point
 Z = f_2(X,Y) # evaluation of the function on the grid
+
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -37,11 +43,44 @@ ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 fig.colorbar(surf, shrink=0.5, aspect=5)
 
 plt.show()
+
 # %% [markdown]
 # ## Cyclic Coordinate Search
 
 # %%
-# code goes to here
+def CyclicCoordinateSearch(f, x0, epsilon):
+    """
+    Cyclic Coordinate Search method.
+    Parameters
+    ----------
+    f : lambda expression The function to be evaluated
+    x0 : numpy.array Starting coordinates
+    epsilon : float Epsilon value determined to check optimality
+    Returns
+    ---------
+    x1 : numpy.array The found x* vector
+    k : integer Number of iterations
+    """
+    k = 0
+    n = len(x0)
+    while(True):
+        y0 = x0
+        for j in range(n):
+            d = np.zeros(n)
+            d[j] = 1
+            # exact line search:
+            # minimize y1 = f(y0+alpha*d)
+            y0 = y1
+        x1 = y0
+        k += 1
+        if(np.linalg.norm(x1-x0) < epsilon):
+            return x1, k
+        else:
+            x0 = x1
+
+
+# %%
+
 
 # %% [markdown]
 # ## Hook & Jeeves Method
@@ -51,6 +90,8 @@ plt.show()
 
 # %% [markdown]
 # ## Simplex Search
+
+# %%
 def SimplexSearch():
     x=np.zeros(shape=(3,2))
     x_1=np.array([-2,15])#initial
@@ -111,6 +152,4 @@ def SimplexSearch():
             break
                 
     return x_mean
-# %%
-# code goes to here
 
