@@ -17,8 +17,8 @@ function = (5*x1-x2)**4+((x1-2)**2)+(x1-2*x2)+12
 f = lambdify([[x1,x2]], function, 'numpy')
 # plot the function
 f_2 = lambdify([x1,x2], function, 'numpy')
-x = np.arange(-3.0,3.0,0.1)
-y = np.arange(-3.0,3.0,0.1)
+x = np.arange(6.0,7.0,0.1)
+y = np.arange(32.0,33.0,0.1)
 X,Y = meshgrid(x, y) # grid of point
 Z = f_2(X,Y) # evaluation of the function on the grid
 from mpl_toolkits.mplot3d import Axes3D
