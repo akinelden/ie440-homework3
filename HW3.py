@@ -5,32 +5,28 @@
 # %%
 import pandas as pd
 import numpy as np
-import sympy as sym
 from sympy import Symbol, cos, sin, lambdify
-import matplotlib.pyplot as plt
-import pdb
-from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 
 
 # %%
-x1  = sym.Symbol('x1')
-x2 = sym.Symbol('x2')
+x1  = Symbol('x1')
+x2 = Symbol('x2')
 function = (5*x1-x2)**4+((x1-2)**2)+(x1-2*x2)+12
 f = lambdify([[x1,x2]], function, 'numpy')
-# plot the function
-f_2 = lambdify([x1,x2], function, 'numpy')
 
 
 # %%
-x = np.arange(6.0,7.0,0.1)
-y = np.arange(32.0,33.0,0.1)
-X,Y = meshgrid(x, y) # grid of point
-Z = f_2(X,Y) # evaluation of the function on the grid
-
+from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import matplotlib.pyplot as plt
+
+# plot the function
+x = np.arange(0,15,0.5)
+y = np.arange(10,50,0.5)
+X,Y = meshgrid(x, y) # grid of point
+Z = f([X,Y]) # evaluation of the function on the grid
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
@@ -42,45 +38,90 @@ ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 
 fig.colorbar(surf, shrink=0.5, aspect=5)
 
+plt.savefig("graph.png")
 plt.show()
+
+# %% [markdown]
+# ## Exact Line Search
+
+# %%
+def BisectionMethod(f, a=-100,b=100,epsilon=0.005) :
+    iteration=0
+    while (b - a) >= epsilon:
+        x_1 = (a + b) / 2
+        fx_1 = f(x_1)
+        if f(x_1 + epsilon) <= fx_1:
+            a = x_1
+        else:
+            b = x_1
+        iteration+=1
+    x_star = (a+b)/2
+    return x_star
+
+
+# %%
+def ExactLineSearch(f, x0, d):
+    alpha = Symbol('alpha')
+    function_alpha = f(np.array(x0)+alpha*np.array(d))
+    f_alp = lambdify(alpha, function_alpha, 'numpy')
+    alp_star = BisectionMethod(f_alp)
+    return alp_star
 
 # %% [markdown]
 # ## Cyclic Coordinate Search
 
 # %%
-def CyclicCoordinateSearch(f, x0, epsilon):
-    """
-    Cyclic Coordinate Search method.
-    Parameters
-    ----------
-    f : lambda expression The function to be evaluated
-    x0 : numpy.array Starting coordinates
-    epsilon : float Epsilon value determined to check optimality
-    Returns
-    ---------
-    x1 : numpy.array The found x* vector
-    k : integer Number of iterations
-    """
-    k = 0
-    n = len(x0)
-    while(True):
-        y0 = x0
-        for j in range(n):
-            d = np.zeros(n)
-            d[j] = 1
-            # exact line search:
-            # minimize y1 = f(y0+alpha*d)
-            y0 = y1
-        x1 = y0
-        k += 1
-        if(np.linalg.norm(x1-x0) < epsilon):
-            return x1, k
-        else:
-            x0 = x1
+def np_str(x_k):
+    '''
+    Used to convert numpy array to string with determined format
+    '''
+    return np.array2string(x_k, precision=2, separator=',')
 
 
 # %%
+def CyclicCoordinateSearch(f, x0, epsilon):
+    x0 = np.array(x0)
+    x_array = [x0]
+    k = 0
+    n = len(x0)
+    res_array = []
+    while(True):
+        y0 = np.copy(x_array[k])
+        for j in range(n):
+            d = np.zeros(n)
+            d[j] = 1
+            alpha = ExactLineSearch(f, y0, d)
+            y1 = y0 + alpha*d
+            res_array.append([k, np_str(x_array[k]), f(x_array[k]),j, str(d),np_str(y0), alpha, np_str(y1)])
+            y0 = y1
+        x_array.append(y1)
+        k += 1
+        if(np.linalg.norm(x_array[k]-x_array[k-1]) < epsilon):
+            res_array.append([k, np_str(x_array[k]), f(x_array[k])])
+            result_table = pd.DataFrame(res_array, columns=['k' ,'x^k', 'fx^k', 'j','d^j','y^j','a^j', 'y^j+1'])
+            return result_table
 
+# %% [markdown]
+# **Solution set 1:**
+# *   x^0 = \[0, 0\]
+# *   Epsilon = 0.01
+
+# %%
+output1 = CyclicCoordinateSearch(f,[0,0],0.01)
+output1
+
+# %% [markdown]
+# **Solution set 2:**
+# *   x^0 = \[10, 35\]
+# *   Epsilon = 0.01
+
+# %%
+output2 = CyclicCoordinateSearch(f,[10,35],0.01)
+output2
+
+
+# %%
+print(output2[-11:].to_latex(index=False,float_format='%.3f'))
 
 # %% [markdown]
 # ## Hook & Jeeves Method
@@ -152,4 +193,8 @@ def SimplexSearch():
             break
                 
     return x_mean
+
+
+# %%
+SimplexSearch()
 
