@@ -1,4 +1,3 @@
-
 # %% [markdown]
 # # Homework 3
 
@@ -75,7 +74,7 @@ def np_str(x_k):
     '''
     Used to convert numpy array to string with determined format
     '''
-    return np.array2string(x_k, precision=2, separator=',')
+    return np.array2string(x_k, precision=3, separator=',')
 
 
 # %%
@@ -119,82 +118,122 @@ output1
 output2 = CyclicCoordinateSearch(f,[10,35],0.01)
 output2
 
-
-# %%
-print(output2[-11:].to_latex(index=False,float_format='%.3f'))
-
 # %% [markdown]
 # ## Hook & Jeeves Method
 
 # %%
-# code goes to here
+def HookJeevesMethod(f, x0, epsilon):
+    x0 = np.array(x0)
+    x_array = [x0]
+    x_temp = []
+    k = 0
+    n = len(x0)
+    res_array = []
+    while(True):
+        # explorotary moves
+        y0 = np.copy(x_array[k])
+        for j in range(n):
+            d_e = np.zeros(n)
+            d_e[j] = 1
+            alpha_e = ExactLineSearch(f, y0, d_e)
+            y1 = y0 + alpha_e*d_e
+            y0 = y1
+        x_temp.append(y1)
+        # pattern moves
+        d_p = x_temp[k] - x_array[k]
+        alpha_p = ExactLineSearch(f, x_array[k], d_p)
+        y1 = x_array[k] + alpha_p*d_p
+        x_array.append(y1)
+        res_array.append([k, np_str(x_array[k]), f(x_array[k]), np_str(x_temp[k]), str(d_p), alpha_p, np_str(x_array[k+1])])
+        k += 1
+        if(np.linalg.norm(x_array[k]-x_array[k-1]) < epsilon):
+            res_array.append([k, np_str(x_array[k]), f(x_array[k])])
+            result_table = pd.DataFrame(res_array, columns=['k' ,'x^k', 'fx^k', 'x^temp','d^k','a^k', 'x^k+1'])
+            return result_table
+
+
+# %%
+HJMoutput1 = HookJeevesMethod(f,[0,0],0.01)
+HJMoutput1
+
+
+# %%
+HJMoutput2 = HookJeevesMethod(f,[10,35],0.01)
+HJMoutput2
 
 # %% [markdown]
 # ## Simplex Search
 
 # %%
-def SimplexSearch():
-    x=np.zeros(shape=(3,2))
-    x_1=np.array([-2,15])#initial
-    x_2=np.array([-8,10])#initial
-    x_3=np.array([0,0])#initial
-    x[0]=x_1
-    x[1]=x_2
-    x[2]=x_3 
-    def compute_f_values(a):
-        f_values=np.zeros(a.shape[0])    
-        for i in range(a.shape[0]):
-            f_values[i]=f(a[i])
-        return f_values    
-    epsilon=1
-    alpha=1
-    beta=0.5
-    gamma=2
-    
-    while(True):    
-        sum_value=0
-        f_values=compute_f_values(x)#function values of x_matrix
-        x_h=x[np.argmax(f_values)] #the worst point
-        x_l=x[np.argmin(f_values)] #the best point
-        index_to_go=np.argmax(f_values) #index of x_h
-        mean_x=np.delete(x, index_to_go, 0)#x matrix rather than x_h
-        x_mean=np.mean(mean_x,axis=0)#compute the mean of x matrix rather than x_h
-        f_values_mean_x=compute_f_values(mean_x)#function values of x_matrix except x_h
+
+def compute_f_values(a):
+    f_values=np.zeros(a.shape[0])    
+    for i in range(a.shape[0]):
+        f_values[i]=f(a[i])
+    return f_values    
+
+def SimplexSearch(x, epsilon = 0.005, alpha = 1, beta = 0.5, gamma = 2, cond = True, _type = None):
+    res = []
+    while(cond):    
+        sum_value = 0
+        f_values = compute_f_values(x)#function values of x_matrix
+        x_h = x[np.argmax(f_values)] #the worst point
+        x_l = x[np.argmin(f_values)] #the best point
+        x_mean = np.mean(np.delete(x, np.argmax(f_values), 0), axis=0) #delete x_h and take the mean
         
-        x_r=x_mean+alpha*(x_mean-x_h) #reflection
+        x_r = x_mean + alpha*(x_mean-x_h) #reflection
         
-        if f(x_l)>f(x_r): #the reflected point x_r happens to be better than the current best  
-            x_e=x_mean+gamma*(x_r-x_mean) #Expansion
-            if f(x_r)>f(x_e): #the expanded point x_e happens to be better than the current best x_r
-                x[np.argmax(f_values)]=x_e
+        if f(x_l) > f(x_r): #the reflected point x_r happens to be better than the current best  
+            x_e = x_mean + gamma*(x_r-x_mean) #Expansion
+            
+            if f(x_r) > f(x_e): #the expanded point x_e happens to be better than the current best x_r
+                x[np.argmax(f_values)] = x_e
+                _type = "E"
+                
             else:             #the expanded point is not better than x_r so we replace x_h with x_r
-                x[np.argmax(f_values)]=x_r
-        
+                x[np.argmax(f_values)] = x_r
+                _type = "R"
         else:
-            if (np.max(f_values_mean_x))>=f(x_r):
-                x[np.argmax(f_values)]=x_r
+            if np.max(compute_f_values(np.delete(x, np.argmax(f_values), 0))) >= f(x_r):
+                x[np.argmax(f_values)] = x_r
+                _type = "R"
             else:
-                if f(x_h)>f(x_r):
-                    x_h_prime=x_r
-                else:
-                    x_h_prime=x_h
-                
-                x_c=x_mean+beta*(x_h_prime-x_mean) #contraction
-                if f(x_c) <= f(x_h):
-                    x[np.argmax(f_values)]=x_c
-                else:
-                    for i in range(3):
-                        x[i]=x[i]+0.5*(x_l-x[i]) #shrink operation
+                _type = "C"
+                if f(x_h) > f(x_r):
+                    x_h_prime = x_r
         
-        for i in range(3):
-            sum_value+=(f(x[i])-f(x_mean))**2
-        print(sum_value)
-        if np.sqrt(sum_value)<epsilon:
-            break
+                else:
+                    x_h_prime = x_h
+                x_c = x_mean + beta*(x_h_prime-x_mean) #contraction
                 
-    return x_mean
+                if f(x_c) <= f(x_h):
+                    x[np.argmax(f_values)] = x_c
+                else:
+                    for i in range(x.shape[0]):
+                        x[i] = x[i] + 0.5*(x_l-x[i]) #shrink operation
+        
+        for i in range(x.shape[0]):
+            sum_value += (f(x[i]) - f(x_mean))**2
+        cond = np.sqrt(sum_value) >= epsilon
+        res.append([np_str(x_mean), np_str(x_h), np_str(x_l), np_str(x[np.argmax(f_values)]), f(x[np.argmax(f_values)]), _type])
+                
+    return pd.DataFrame(res, columns=["x_mean", "x_h", "x_l", "x_new", "f(x_new)", "type"])
 
 
 # %%
-SimplexSearch()
+x = np.zeros(shape=(3,2))
+x[0] = np.array([-2,15])#initial
+x[1] = np.array([-8,10])#initial
+x[2] = np.array([0,0])#initial
 
+simplex_result = SimplexSearch(x.copy())
+simplex_result
+
+
+# %%
+x_2 = np.zeros(shape=(3,2))
+x_2[0] = np.array([-10,-10])#initial
+x_2[1] = np.array([-25,45])#initial
+x_2[2] = np.array([20,-1])#initial
+simplex_result_2 = SimplexSearch(x_2.copy())
+simplex_result_2
